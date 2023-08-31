@@ -17,6 +17,9 @@
 #include <linux/psp-sev.h>
 #include <attestation.h>
 #include <cert-table.h>
+#include <time.h>
+#define ITERATIONS 1000
+#define TIME_PERIOD 5
 
 #ifndef PROG_NAME
 #define PROG_NAME	"sev-guest-get-report"
@@ -259,6 +262,9 @@ int get_report(const uint8_t *data, size_t data_size,
 	struct snp_report_resp resp;
 	struct snp_guest_request_ioctl guest_req;
 	struct msg_report_resp *report_resp = (struct msg_report_resp *)&resp.data;
+	struct timespec start, end;
+    double elapsed_time;
+	int count = 0;  // to keep track of successful ioctl calls
 
 	if (!report) {
 		rc = EINVAL;
@@ -292,14 +298,28 @@ int get_report(const uint8_t *data, size_t data_size,
 	}
 
 	/* Issue the guest request IOCTL */
-	errno = 0;
-	rc = ioctl(fd, SNP_GET_REPORT, &guest_req);
-	if (rc == -1) {
-		rc = errno;
-		perror("ioctl");
-		fprintf(stderr, "firmware error %llu\n", guest_req.fw_err);
-		goto out_close;
+
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	for (int i = 0; i < ITERATIONS; i++)
+	{
+		errno = 0;
+		rc = ioctl(fd, SNP_GET_REPORT, &guest_req);
+		if (rc == -1)
+		{
+			rc = errno;
+			perror("ioctl");
+			fprintf(stderr, "firmware error %llu\n", guest_req.fw_err);
+			goto out_close;
+		}
 	}
+	
+	clock_gettime(CLOCK_MONOTONIC, &end);
+
+    elapsed_time = (end.tv_sec - start.tv_sec) * 1e9;   // convert sec to ns
+    elapsed_time += (end.tv_nsec - start.tv_nsec);      // add ns
+    elapsed_time /= ITERATIONS;                         // average time per ioctl call
+
+    printf("Average time for ioctl call: %f ns\n", elapsed_time);
 
 	/* Check that the report was successfully generated */
 	if (report_resp->status != 0 ) {
