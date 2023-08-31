@@ -300,18 +300,22 @@ int get_report(const uint8_t *data, size_t data_size,
 	/* Issue the guest request IOCTL */
 
 	clock_gettime(CLOCK_MONOTONIC, &start);
-	for (int i = 0; i < ITERATIONS; i++)
-	{
-		errno = 0;
-		rc = ioctl(fd, SNP_GET_REPORT, &guest_req);
-		if (rc == -1)
-		{
-			rc = errno;
-			perror("ioctl");
-			fprintf(stderr, "firmware error %llu\n", guest_req.fw_err);
-			goto out_close;
-		}
-	}
+do {
+        errno = 0;
+        rc = ioctl(fd, SNP_GET_REPORT, &guest_req);
+        if (rc != -1) {
+            count++;
+        }
+
+        // Check current time
+        clock_gettime(CLOCK_MONOTONIC, &end);
+
+        elapsed_time = (end.tv_sec - start.tv_sec) + 
+                       (end.tv_nsec - start.tv_nsec) / 1e9;
+
+    } while(elapsed_time < TIME_PERIOD);
+
+    printf("Throughput for ioctl call: %f calls/sec\n", count / elapsed_time);
 	
 	clock_gettime(CLOCK_MONOTONIC, &end);
 
