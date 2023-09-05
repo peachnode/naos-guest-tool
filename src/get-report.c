@@ -22,52 +22,53 @@
 #define TIME_PERIOD 5
 
 #ifndef PROG_NAME
-#define PROG_NAME	"sev-guest-get-report"
+#define PROG_NAME "sev-guest-get-report"
 #endif
 
-#define NR_ARGS_REQUIRED	(2)
+#define NR_ARGS_REQUIRED (2)
 
-#define SEV_GUEST_DEVICE	"/dev/sev-guest"
+#define SEV_GUEST_DEVICE "/dev/sev-guest"
 
-struct options {
+struct options
+{
 	const char *data_filename;
 	const char *digest_name;
 	const char *report_filename;
 	const char *cert_dirname;
-	bool        do_extended_report;
-	bool        do_custom_digest;
-	bool	    do_help;
+	bool do_extended_report;
+	bool do_custom_digest;
+	bool do_help;
 };
 
 void print_usage(void)
 {
 	fprintf(stderr,
-		"Usage: " PROG_NAME " [-f|--data-file data_file] [-d|--digest digest_name]\n"
-		"       [-x|--extended] [-o|--out-dir dir] [-h|--help] report_file\n"
-		"\n"
-		"Retrieve the attestation report from the SEV-SNP firmware and write it to\n"
-		"'report_file'.\n"
-		"\n"
-		"options:\n"
-		"  -f|--data-file file\n"
-		"    File whose contents will be hashed and included in the report.\n"
-		"    E.g. an SSH public key file.\n"
-		"\n"
-		"  -d|--digest name\n"
-		"    Name of the openssl digest to use when hashing the data file.\n"
-		"    Ignored unless -f is also specified.\n"
-		"\n"
-		"  -x|--extended\n"
-		"    In addition to retrieving the report, also retrieve the certificate chain\n"
-		"    required to validate the report. The certificate chain must have been\n"
-		"    stored previously on the host using the sev-host-set-cert-chain command.\n"
-		"    The certificates will each be written to a file named according to the\n"
-		"    GUID that identifies the certificate.\n"
-		"\n"
-		"  -c|--cert-dir dir\n"
-		"    Write any certificates retrieved with -x to 'dir'. Ignored unless -x is\n"
-		"    also specified.\n"
-		"\n");
+			"Usage: " PROG_NAME " [-f|--data-file data_file] [-d|--digest digest_name]\n"
+			"       [-x|--extended] [-o|--out-dir dir] [-h|--help] report_file\n"
+			"\n"
+			"Retrieve the attestation report from the SEV-SNP firmware and write it to\n"
+			"'report_file'.\n"
+			"\n"
+			"options:\n"
+			"  -f|--data-file file\n"
+			"    File whose contents will be hashed and included in the report.\n"
+			"    E.g. an SSH public key file.\n"
+			"\n"
+			"  -d|--digest name\n"
+			"    Name of the openssl digest to use when hashing the data file.\n"
+			"    Ignored unless -f is also specified.\n"
+			"\n"
+			"  -x|--extended\n"
+			"    In addition to retrieving the report, also retrieve the certificate chain\n"
+			"    required to validate the report. The certificate chain must have been\n"
+			"    stored previously on the host using the sev-host-set-cert-chain command.\n"
+			"    The certificates will each be written to a file named according to the\n"
+			"    GUID that identifies the certificate.\n"
+			"\n"
+			"  -c|--cert-dir dir\n"
+			"    Write any certificates retrieved with -x to 'dir'. Ignored unless -x is\n"
+			"    also specified.\n"
+			"\n");
 }
 
 int parse_options(int argc, char *argv[], struct options *options)
@@ -75,26 +76,29 @@ int parse_options(int argc, char *argv[], struct options *options)
 	int rc = EXIT_FAILURE;
 	char *short_options = "c:d:f:hx";
 	struct option long_options[] = {
-		{ "cert-dir",  required_argument, NULL, 'c' },
-		{ "digest",    required_argument, NULL, 'd' },
-		{ "data-file", required_argument, NULL, 'f' },
-		{ "help",      no_argument,       NULL, 'h' },
-		{ "extended",  no_argument,       NULL, 'x' },
+		{"cert-dir", required_argument, NULL, 'c'},
+		{"digest", required_argument, NULL, 'd'},
+		{"data-file", required_argument, NULL, 'f'},
+		{"help", no_argument, NULL, 'h'},
+		{"extended", no_argument, NULL, 'x'},
 		{0},
 	};
 
-	if (argc < NR_ARGS_REQUIRED || !argv || !options) {
+	if (argc < NR_ARGS_REQUIRED || !argv || !options)
+	{
 		rc = EINVAL;
 		goto out;
 	}
 
-	do {
+	do
+	{
 		char option = getopt_long(argc, argv,
-					  short_options, long_options, NULL);
+								  short_options, long_options, NULL);
 		if (option == -1)
 			break;
 
-		switch (option) {
+		switch (option)
+		{
 		case 'c':
 			options->cert_dirname = optarg;
 			break;
@@ -120,19 +124,22 @@ int parse_options(int argc, char *argv[], struct options *options)
 		}
 	} while (1);
 
-	if (optind < argc) {
+	if (optind < argc)
+	{
 		options->report_filename = argv[optind];
 		optind++;
 	}
 
-	if (options->do_custom_digest && !options->data_filename) {
+	if (options->do_custom_digest && !options->data_filename)
+	{
 		/* TODO: read data from stdin */
 		fprintf(stderr, "-d specified, but no data file specified!\n");
 		rc = EINVAL;
 		goto out;
 	}
 
-	if (optind < argc) {
+	if (optind < argc)
+	{
 		fprintf(stderr, PROG_NAME ": too many arguments.\n\n");
 		rc = EINVAL;
 		goto out;
@@ -147,14 +154,16 @@ int hash_data_file(const char *file_name, uint8_t *buffer, size_t *size, const c
 {
 	int rc = EXIT_FAILURE;
 	FILE *data_file = NULL;
-	struct stat file_stats;;
+	struct stat file_stats;
+	;
 	char *file_buffer = NULL;
 	EVP_MD_CTX *ctx = NULL;
 	const EVP_MD *md = NULL;
 	size_t count = 0;
 	unsigned digest_size = 0;
 
-	if (!file_name || !buffer || !size || *size < EVP_MAX_MD_SIZE) {
+	if (!file_name || !buffer || !size || *size < EVP_MAX_MD_SIZE)
+	{
 		rc = EINVAL;
 		goto out;
 	}
@@ -163,7 +172,8 @@ int hash_data_file(const char *file_name, uint8_t *buffer, size_t *size, const c
 
 	errno = 0;
 	data_file = fopen(file_name, "r");
-	if (!data_file) {
+	if (!data_file)
+	{
 		rc = errno;
 		perror("fopen");
 		goto out;
@@ -171,43 +181,49 @@ int hash_data_file(const char *file_name, uint8_t *buffer, size_t *size, const c
 
 	errno = 0;
 	rc = fstat(fileno(data_file), &file_stats);
-	if (rc != 0) {
+	if (rc != 0)
+	{
 		rc = errno;
 		perror("fstat");
 		goto out_close;
 	}
 
 	file_buffer = malloc(file_stats.st_size);
-	if (!file_buffer) {
+	if (!file_buffer)
+	{
 		rc = ENOMEM;
 		perror("malloc");
 		goto out_close;
 	}
 
 	count = fread(file_buffer, sizeof(char), file_stats.st_size, data_file);
-	if (count != file_stats.st_size || ferror(data_file)) {
+	if (count != file_stats.st_size || ferror(data_file))
+	{
 		rc = EIO;
 		perror("fread");
 		goto out_free;
 	}
 
 	ctx = EVP_MD_CTX_new();
-	if (!ctx) {
+	if (!ctx)
+	{
 		ERR_print_errors_fp(stderr);
 		rc = ENOMEM;
 		goto out_free;
 	}
 
 	md = EVP_get_digestbyname(digest_name);
-	if (!md) {
+	if (!md)
+	{
 		rc = EINVAL;
 		perror("EVP_get_digestbyname");
 		ERR_print_errors_fp(stderr);
 		goto out_free_ctx;
 	}
 
-	digest_size = (unsigned) *size;
-	if (!EVP_Digest(file_buffer, file_stats.st_size, buffer, &digest_size, md, NULL)) {
+	digest_size = (unsigned)*size;
+	if (!EVP_Digest(file_buffer, file_stats.st_size, buffer, &digest_size, md, NULL))
+	{
 		ERR_print_errors_fp(stderr);
 		rc = EIO;
 		goto out_free_ctx;
@@ -217,19 +233,22 @@ int hash_data_file(const char *file_name, uint8_t *buffer, size_t *size, const c
 	rc = EXIT_SUCCESS;
 
 out_free_ctx:
-	if (ctx) {
+	if (ctx)
+	{
 		EVP_MD_CTX_free(ctx);
 		ctx = NULL;
 	}
 
 out_free:
-	if (file_buffer) {
+	if (file_buffer)
+	{
 		free(file_buffer);
 		file_buffer = NULL;
 	}
 
 out_close:
-	if (data_file) {
+	if (data_file)
+	{
 		fclose(data_file);
 		data_file = NULL;
 	}
@@ -239,13 +258,14 @@ out:
 
 void print_digest(const uint8_t *digest, size_t size)
 {
-#define BYTES_PER_LINE	32
-#define INDENT		"    "
+#define BYTES_PER_LINE 32
+#define INDENT "    "
 
 	if (!digest || size == 0)
 		return;
 
-	for (size_t i = 0; i < size; i++) {
+	for (size_t i = 0; i < size; i++)
+	{
 		if (i % BYTES_PER_LINE == 0)
 			printf("\n" INDENT);
 		printf("%02x", digest[i]);
@@ -254,7 +274,7 @@ void print_digest(const uint8_t *digest, size_t size)
 }
 
 int get_report(const uint8_t *data, size_t data_size,
-	       struct attestation_report *report)
+			   struct attestation_report *report)
 {
 	int rc = EXIT_FAILURE;
 	int fd = -1;
@@ -262,16 +282,18 @@ int get_report(const uint8_t *data, size_t data_size,
 	struct snp_report_resp resp;
 	struct snp_guest_request_ioctl guest_req;
 	struct msg_report_resp *report_resp = (struct msg_report_resp *)&resp.data;
-	struct timespec start, end;
-    double elapsed_time;
-	int count = 0;  // to keep track of successful ioctl calls
+	struct timespec start = {0, 0}, end, call_start, call_end;
+	double elapsed_time, call_time, max_call_time = 0.0;
+	int count = 0; // to keep track of successful ioctl calls
 
-	if (!report) {
+	if (!report)
+	{
 		rc = EINVAL;
 		goto out;
 	}
 
-	if (data && (data_size > sizeof(req.user_data) || data_size == 0)) {
+	if (data && (data_size > sizeof(req.user_data) || data_size == 0))
+	{
 		rc = EINVAL;
 		goto out;
 	}
@@ -285,55 +307,73 @@ int get_report(const uint8_t *data, size_t data_size,
 
 	memset(&guest_req, 0, sizeof(guest_req));
 	guest_req.msg_version = 1;
-	guest_req.req_data = (__u64) &req;
-	guest_req.resp_data = (__u64) &resp;
+	guest_req.req_data = (__u64)&req;
+	guest_req.resp_data = (__u64)&resp;
 
 	/* Open the sev-guest device */
 	errno = 0;
 	fd = open(SEV_GUEST_DEVICE, O_RDWR);
-	if (fd == -1) {
+	if (fd == -1)
+	{
 		rc = errno;
 		perror("open");
 		goto out;
 	}
 
 	/* Issue the guest request IOCTL */
-
 	clock_gettime(CLOCK_MONOTONIC, &start);
-do {
-        errno = 0;
-        rc = ioctl(fd, SNP_GET_REPORT, &guest_req);
-        if (rc != -1) {
-            count++;
-        }
 
-        // Check current time
-        clock_gettime(CLOCK_MONOTONIC, &end);
+	printf("Throughput analysis started\n");
+	do
+	{
+		errno = 0;
 
-        elapsed_time = (end.tv_sec - start.tv_sec) + 
-                       (end.tv_nsec - start.tv_nsec) / 1e9;
+		// Start timing for this specific ioctl call
+		clock_gettime(CLOCK_MONOTONIC, &call_start);
 
-    } while(elapsed_time < TIME_PERIOD);
+		rc = ioctl(fd, SNP_GET_REPORT, &guest_req);
 
-    printf("Throughput for ioctl call: %f calls/sec\n", count / elapsed_time);
-	
-	clock_gettime(CLOCK_MONOTONIC, &end);
+		// End timing for this specific ioctl call
+		clock_gettime(CLOCK_MONOTONIC, &call_end);
 
-    elapsed_time = (end.tv_sec - start.tv_sec) * 1e9;   // convert sec to ns
-    elapsed_time += (end.tv_nsec - start.tv_nsec);      // add ns
-    elapsed_time /= ITERATIONS;                         // average time per ioctl call
+		if (rc != -1)
+		{
+			count++;
 
-    printf("Average time for ioctl call: %f ns\n", elapsed_time);
+			// Calculate time taken for this call
+			call_time = (call_end.tv_sec - call_start.tv_sec) +
+						(call_end.tv_nsec - call_start.tv_nsec) / 1e9;
+
+			// Update max_call_time if this call took longer
+			if (call_time > max_call_time)
+			{
+				max_call_time = call_time;
+			}
+		}
+
+		// Check elapsed time for the entire period
+		clock_gettime(CLOCK_MONOTONIC, &end);
+
+		elapsed_time = (end.tv_sec - start.tv_sec) +
+					   (end.tv_nsec - start.tv_nsec) / 1e9;
+
+	} while (elapsed_time < TIME_PERIOD);
+
+	printf("Throughput for ioctl call: %f calls/sec\n", count / elapsed_time);
+	printf("Maximum time for a single ioctl call: %f ms\n", max_call_time * 1000);
+
 
 	/* Check that the report was successfully generated */
-	if (report_resp->status != 0 ) {
+	if (report_resp->status != 0)
+	{
 		fprintf(stderr, "firmware error %#x\n", report_resp->status);
 		rc = report_resp->status;
 		goto out_close;
 	}
-	else if (report_resp->report_size > sizeof(*report)) {
+	else if (report_resp->report_size > sizeof(*report))
+	{
 		fprintf(stderr, "report size is %u bytes (expected %lu)!\n",
-			report_resp->report_size, sizeof(*report));
+				report_resp->report_size, sizeof(*report));
 		rc = EFBIG;
 		goto out_close;
 	}
@@ -342,7 +382,8 @@ do {
 	rc = EXIT_SUCCESS;
 
 out_close:
-	if (fd > 0) {
+	if (fd > 0)
+	{
 		close(fd);
 		fd = -1;
 	}
@@ -351,8 +392,8 @@ out:
 }
 
 int get_extended_report(const uint8_t *data, size_t data_size,
-			struct attestation_report *report,
-			uint8_t **certs, size_t *certs_size)
+						struct attestation_report *report,
+						uint8_t **certs, size_t *certs_size)
 {
 	int rc = EXIT_FAILURE;
 	int fd = -1;
@@ -363,12 +404,14 @@ int get_extended_report(const uint8_t *data, size_t data_size,
 	struct cert_table certs_data;
 	size_t page_size = 0, nr_pages = 0;
 
-	if (!report || !certs || !certs_size) {
+	if (!report || !certs || !certs_size)
+	{
 		rc = EINVAL;
 		goto out;
 	}
 
-	if (data && (data_size > sizeof(req.data.user_data) || data_size == 0)) {
+	if (data && (data_size > sizeof(req.data.user_data) || data_size == 0))
+	{
 		rc = EINVAL;
 		goto out;
 	}
@@ -376,7 +419,7 @@ int get_extended_report(const uint8_t *data, size_t data_size,
 	/* Initialize data structures */
 	memset(&req, 0, sizeof(req));
 #if 1
-	req.certs_address = (__u64)-1;	/* Invalid, non-zero address */
+	req.certs_address = (__u64)-1; /* Invalid, non-zero address */
 #endif
 	if (data)
 		memcpy(&req.data.user_data, data, data_size);
@@ -385,15 +428,16 @@ int get_extended_report(const uint8_t *data, size_t data_size,
 
 	memset(&guest_req, 0, sizeof(guest_req));
 	guest_req.msg_version = 1;
-	guest_req.req_data = (__u64) &req;
-	guest_req.resp_data = (__u64) &resp;
+	guest_req.req_data = (__u64)&req;
+	guest_req.resp_data = (__u64)&resp;
 
 	memset(&certs_data, 0, sizeof(certs_data));
 
 	/* Open the sev-guest device */
 	errno = 0;
 	fd = open(SEV_GUEST_DEVICE, O_RDWR);
-	if (fd == -1) {
+	if (fd == -1)
+	{
 		rc = errno;
 		perror("open");
 		goto out;
@@ -402,7 +446,8 @@ int get_extended_report(const uint8_t *data, size_t data_size,
 	/* Query the size of the stored certificates */
 	errno = 0;
 	rc = ioctl(fd, SNP_GET_EXT_REPORT, &guest_req);
-	if (rc == -1 && guest_req.fw_err != 0x100000000) {
+	if (rc == -1 && guest_req.fw_err != 0x100000000)
+	{
 		rc = errno;
 		perror("ioctl");
 		fprintf(stderr, "firmware error %#llx\n", guest_req.fw_err);
@@ -411,7 +456,8 @@ int get_extended_report(const uint8_t *data, size_t data_size,
 		goto out_close;
 	}
 
-	if (req.certs_len == 0) {
+	if (req.certs_len == 0)
+	{
 		fprintf(stderr, "The cert chain storage is empty.\n");
 		rc = ENODATA;
 		goto out_close;
@@ -419,12 +465,13 @@ int get_extended_report(const uint8_t *data, size_t data_size,
 
 	/* The certificate storage is always page-aligned */
 	page_size = sysconf(_SC_PAGESIZE);
-	nr_pages = req.certs_len/page_size;
+	nr_pages = req.certs_len / page_size;
 	if (req.certs_len % page_size != 0)
-		nr_pages++;	/* Just to be safe */
+		nr_pages++; /* Just to be safe */
 
 	certs_data.entry = calloc(page_size, nr_pages);
-	if (!certs_data.entry) {
+	if (!certs_data.entry)
+	{
 		rc = ENOMEM;
 		errno = rc;
 		perror("calloc");
@@ -435,7 +482,8 @@ int get_extended_report(const uint8_t *data, size_t data_size,
 	req.certs_address = (__u64)certs_data.entry;
 	errno = 0;
 	rc = ioctl(fd, SNP_GET_EXT_REPORT, &guest_req);
-	if (rc == -1) {
+	if (rc == -1)
+	{
 		rc = errno;
 		perror("ioctl");
 		fprintf(stderr, "errno is %u\n", errno);
@@ -445,14 +493,16 @@ int get_extended_report(const uint8_t *data, size_t data_size,
 	}
 
 	/* Check that the report was successfully generated */
-	if (report_resp->status != 0 ) {
+	if (report_resp->status != 0)
+	{
 		fprintf(stderr, "firmware error %x\n", report_resp->status);
 		rc = report_resp->status;
 		goto out_free;
 	}
-	else if (report_resp->report_size > sizeof(*report)) {
+	else if (report_resp->report_size > sizeof(*report))
+	{
 		fprintf(stderr, "report size is %u bytes (expected %lu)!\n",
-			report_resp->report_size, sizeof(*report));
+				report_resp->report_size, sizeof(*report));
 		rc = EFBIG;
 		goto out_free;
 	}
@@ -463,13 +513,15 @@ int get_extended_report(const uint8_t *data, size_t data_size,
 	rc = EXIT_SUCCESS;
 
 out_free:
-	if (rc != EXIT_SUCCESS && certs_data.entry) {
+	if (rc != EXIT_SUCCESS && certs_data.entry)
+	{
 		free(certs_data.entry);
 		certs_data.entry = NULL;
 	}
 
 out_close:
-	if (fd > 0) {
+	if (fd > 0)
+	{
 		close(fd);
 		fd = -1;
 	}
@@ -485,7 +537,8 @@ int write_report(const char *file_name, struct attestation_report *report)
 	/* Open the output report file */
 	errno = 0;
 	report_file = fopen(file_name, "w+");
-	if (!report_file) {
+	if (!report_file)
+	{
 		rc = errno;
 		perror("fopen");
 		goto out;
@@ -493,7 +546,8 @@ int write_report(const char *file_name, struct attestation_report *report)
 
 	/* Write the report to the output */
 	int count = fwrite(report, sizeof(char), sizeof(*report), report_file);
-	if (count != sizeof(*report)) {
+	if (count != sizeof(*report))
+	{
 		rc = EIO;
 		fprintf(stderr, "fwrite failed.\n");
 		goto out_close;
@@ -503,7 +557,8 @@ int write_report(const char *file_name, struct attestation_report *report)
 	rc = EXIT_SUCCESS;
 
 out_close:
-	if (report_file) {
+	if (report_file)
+	{
 		fclose(report_file);
 		report_file = NULL;
 	}
@@ -519,19 +574,22 @@ int write_cert(const struct cert_table_entry *entry, const uint8_t *buffer, size
 	char uuid_str[UUID_STR_LEN] = {0};
 	char *filename = NULL;
 
-	if (!entry || !buffer || size == 0) {
+	if (!entry || !buffer || size == 0)
+	{
 		rc = EINVAL;
 		goto out;
 	}
 
-	if (entry->offset > size || entry->length > size) {
+	if (entry->offset > size || entry->length > size)
+	{
 		rc = EINVAL;
 		goto out;
 	}
 
 	/* Ensure that the entry describes a certificate within the bounds of the buffer */
 	cert_end = entry->offset + entry->length;
-	if (cert_end < entry->offset || cert_end < entry->length || cert_end > size) {
+	if (cert_end < entry->offset || cert_end < entry->length || cert_end > size)
+	{
 		rc = EOVERFLOW;
 		goto out;
 	}
@@ -544,20 +602,28 @@ int write_cert(const struct cert_table_entry *entry, const uint8_t *buffer, size
 	 * name in the spec as the file name with a .cert extension.
 	 * Otherwise, just use the GUID as the file name.
 	 */
-	if (memcmp(uuid_str, vcek_guid, sizeof(uuid_str)) == 0) {
+	if (memcmp(uuid_str, vcek_guid, sizeof(uuid_str)) == 0)
+	{
 		filename = "vcek.cert";
-	} else if (memcmp(uuid_str, ask_guid, sizeof(uuid_str)) == 0) {
+	}
+	else if (memcmp(uuid_str, ask_guid, sizeof(uuid_str)) == 0)
+	{
 		filename = "ask.cert";
-	} else if (memcmp(uuid_str, ark_guid, sizeof(uuid_str)) == 0) {
+	}
+	else if (memcmp(uuid_str, ark_guid, sizeof(uuid_str)) == 0)
+	{
 		filename = "ark.cert";
-	} else {
+	}
+	else
+	{
 		filename = uuid_str;
 	}
 
 	/* Open the output certificate file */
 	errno = 0;
 	file = fopen(filename, "w+");
-	if (!file) {
+	if (!file)
+	{
 		rc = errno;
 		perror("fopen");
 		goto out;
@@ -565,7 +631,8 @@ int write_cert(const struct cert_table_entry *entry, const uint8_t *buffer, size
 
 	/* Write the cert to the output */
 	count = fwrite(buffer + entry->offset, sizeof(char), entry->length, file);
-	if (count != entry->length) {
+	if (count != entry->length)
+	{
 		rc = EIO;
 		fprintf(stderr, "fwrite failed.\n");
 		goto out_close;
@@ -575,7 +642,8 @@ int write_cert(const struct cert_table_entry *entry, const uint8_t *buffer, size
 	rc = EXIT_SUCCESS;
 
 out_close:
-	if (file) {
+	if (file)
+	{
 		fclose(file);
 		file = NULL;
 	}
@@ -591,14 +659,16 @@ int write_certs(const uint8_t *certs, size_t size)
 	};
 	size_t table_size = 0, certs_size = 0, total_size = 0;
 
-	if (!certs || size == 0) {
+	if (!certs || size == 0)
+	{
 		rc = EINVAL;
 		goto out;
 	}
 
 	/* Determine the size of the certificate chain including the cert table */
 	table_size = cert_table_get_size(&table);
-	if (table_size == 0) {
+	if (table_size == 0)
+	{
 		rc = ENODATA;
 		errno = rc;
 		perror("cert_table_get_size");
@@ -606,28 +676,33 @@ int write_certs(const uint8_t *certs, size_t size)
 	}
 
 	rc = cert_table_get_certs_size(&table, &certs_size);
-	if (rc != EXIT_SUCCESS) {
+	if (rc != EXIT_SUCCESS)
+	{
 		errno = rc;
 		perror("cert_table_get_certs");
 		goto out;
 	}
 
 	total_size = certs_size + table_size;
-	if (total_size < table_size || total_size < certs_size) {
+	if (total_size < table_size || total_size < certs_size)
+	{
 		rc = EOVERFLOW;
 		goto out;
 	}
 
-	if (total_size > size) {
+	if (total_size > size)
+	{
 		rc = ENOBUFS;
 		goto out;
 	}
 
-	for (size_t i = 0; table.entry[i].length > 0; i++) {
+	for (size_t i = 0; table.entry[i].length > 0; i++)
+	{
 		struct cert_table_entry *entry = table.entry + i;
 
 		rc = write_cert(entry, certs, size);
-		if (rc != EXIT_SUCCESS) {
+		if (rc != EXIT_SUCCESS)
+		{
 			errno = rc;
 			perror("write_cert");
 			goto out;
@@ -648,7 +723,7 @@ int main(int argc, char *argv[])
 	size_t hash_size = sizeof(hash), certs_size = 0;
 	uint8_t *certs = NULL;
 
-	memset(&report,  0, sizeof(report));
+	memset(&report, 0, sizeof(report));
 	memset(&options, 0, sizeof(options));
 	memset(&certs, 0, sizeof(certs));
 
@@ -657,15 +732,18 @@ int main(int argc, char *argv[])
 
 	/* Parse command line options */
 	rc = parse_options(argc, argv, &options);
-	if (rc != EXIT_SUCCESS || options.do_help == true) {
+	if (rc != EXIT_SUCCESS || options.do_help == true)
+	{
 		print_usage();
 		goto exit;
 	}
 
 	/* If a data file was specified, add the hash of the data to the request */
-	if (options.data_filename) {
+	if (options.data_filename)
+	{
 		rc = hash_data_file(options.data_filename, hash, &hash_size, options.digest_name);
-		if (rc != EXIT_SUCCESS) {
+		if (rc != EXIT_SUCCESS)
+		{
 			errno = rc;
 			perror("hash_data_file");
 			goto exit;
@@ -677,24 +755,29 @@ int main(int argc, char *argv[])
 	putchar('\n');
 
 	/* Retrieve the attestation report from the SEV FW */
-	if (options.do_extended_report) {
+	if (options.do_extended_report)
+	{
 		rc = get_extended_report(hash, hash_size, &report, &certs, &certs_size);
-		if (rc != EXIT_SUCCESS) {
+		if (rc != EXIT_SUCCESS)
+		{
 			errno = rc;
 			perror("get_extended_report");
 			goto exit;
 		}
 
 		rc = write_certs(certs, certs_size);
-		if (rc != EXIT_SUCCESS) {
+		if (rc != EXIT_SUCCESS)
+		{
 			errno = rc;
 			perror("write_certs");
 			goto exit_free;
 		}
 	}
-	else {
+	else
+	{
 		rc = get_report(hash, hash_size, &report);
-		if (rc != EXIT_SUCCESS) {
+		if (rc != EXIT_SUCCESS)
+		{
 			errno = rc;
 			perror("get_report");
 			goto exit;
@@ -703,7 +786,8 @@ int main(int argc, char *argv[])
 
 	/* Write the report to the output file */
 	rc = write_report(options.report_filename, &report);
-	if (rc != EXIT_SUCCESS) {
+	if (rc != EXIT_SUCCESS)
+	{
 		errno = rc;
 		perror("write_report");
 		goto exit_free;
@@ -712,11 +796,11 @@ int main(int argc, char *argv[])
 	rc = EXIT_SUCCESS;
 
 exit_free:
-	if (certs) {
+	if (certs)
+	{
 		free(certs);
 		certs = NULL;
 	}
 exit:
 	exit(rc);
 }
-
